@@ -1,2 +1,4 @@
 database created.
 node --watch index.js  
+npm run dev
+npm install
