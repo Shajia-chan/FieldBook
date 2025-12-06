@@ -1,38 +1,21 @@
-import dotenv from 'dotenv';
-import express from 'express';
-import cors from 'cors';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import connectDB from "./lib/connectDB.js";
+import fieldRouter from "./routes/field.route.js";
+
 dotenv.config();
-import userRouter from './routes/user.route.js';
-import postRouter from './routes/post.route.js';
-import coommentRouter from './routes/comment.js';
-import bookingRouter from './routes/booking.route.js';
-import connectDB from './lib/connectDB.js';
-
-
-
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
 const PORT = process.env.PORT || 3000;
 
-// Correct variable name, should be 'test' not 'text'
-// console.log('Text from .env:', process.env.test);  // Logs the value of 'test' from the .env file
+// Routes
+app.use("/fields", fieldRouter);
 
-
-// app.get("/test", (req, res) => {
-
-//     res.status(200).send("It works!");
-// });
-
-app.use('/users', userRouter);
-app.use('/posts', postRouter);
-app.use('/comments', coommentRouter);
-app.use('/bookings', bookingRouter);
-
-
-app.listen(PORT, () => {
-
-    connectDB();
-    console.log("Server is running ");
+app.listen(PORT, async () => {
+  await connectDB();
+  console.log(`Server is running on port ${PORT}`);
 });
