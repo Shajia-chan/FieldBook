@@ -1,25 +1,28 @@
 {
-  "name": "backend",
+  "name": "football-booking-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
+  "description": "Football Field Booking System Backend API",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node seedFields.js"
   },
-  "keywords": [],
+  "keywords": [
+    "football",
+    "booking",
+    "express",
+    "mongodb"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^5.0.1",
-    "jsonwebtoken": "^9.0.3",
-    "mongodb": "^6.21.0",
-    "mongoose": "^8.8.4",
-    "multer": "^2.0.2",
-    "node": "^23.4.0"
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "mongoose": "^7.6.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
