@@ -2,3 +2,7 @@ database created.
 node --watch index.js  
 npm run dev
 npm install
+
+admin user:
+admin@fieldbook.com
+Test@1234

@@ -6,6 +6,11 @@ import Booking from "./routes/Booking.jsx";
 import Bookings from "./routes/Bookings.jsx";
 import Login from "./routes/Login.jsx";
 import Register from "./routes/Register.jsx";
+import UserProfile from "./routes/UserProfile.jsx";
+import PlayerDashboard from "./routes/PlayerDashboard.jsx";
+import FieldOwnerDashboard from "./routes/FieldOwnerDashboard.jsx";
+import AdminDashboard from "./routes/AdminDashboard.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 const App = () => {
   console.log('App rendered');
@@ -20,6 +25,12 @@ const App = () => {
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+          
+          {/* Dashboard Routes */}
+          <Route path="/player-dashboard" element={<ProtectedRoute requiredRole="Player"><PlayerDashboard /></ProtectedRoute>} />
+          <Route path="/field-owner-dashboard" element={<ProtectedRoute requiredRole="Field_Owner"><FieldOwnerDashboard /></ProtectedRoute>} />
+          <Route path="/admin-dashboard" element={<ProtectedRoute requiredRole="Admin"><AdminDashboard /></ProtectedRoute>} />
           
           <Route path="*" element={
             <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">

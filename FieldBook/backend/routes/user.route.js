@@ -1,10 +1,29 @@
 import express from "express";
-const router = express.Router()
+import {
+  registerUser,
+  loginUser,
+  getUserProfile,
+  updateUserProfile,
+  getAllUsers,
+  getUsersByRole,
+  deleteUser,
+  deactivateUser,
+} from "../controllers/user.controller.js";
 
+const router = express.Router();
 
+// Auth routes
+router.post("/register", registerUser);
+router.post("/login", loginUser);
 
-router.get("/anothertest", (req, res) => {
-    res.status(200).send("Hello from user route");
-});
+// User profile routes
+router.get("/profile", getUserProfile);
+router.put("/profile/update", updateUserProfile);
+
+// Admin routes
+router.get("/all", getAllUsers);
+router.get("/role/:role", getUsersByRole);
+router.delete("/delete", deleteUser);
+router.put("/deactivate", deactivateUser);
 
 export default router;
