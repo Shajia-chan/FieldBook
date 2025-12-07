@@ -10,6 +10,9 @@ import UserProfile from "./routes/UserProfile.jsx";
 import PlayerDashboard from "./routes/PlayerDashboard.jsx";
 import FieldOwnerDashboard from "./routes/FieldOwnerDashboard.jsx";
 import AdminDashboard from "./routes/AdminDashboard.jsx";
+import AvailableFields from "./routes/AvailableFields.jsx";
+import ManageFields from "./routes/ManageFields.jsx";
+import BookField from "./routes/BookField.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 const App = () => {
@@ -26,6 +29,11 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+          
+          {/* Field Booking Routes */}
+          <Route path="/available-fields" element={<AvailableFields />} />
+          <Route path="/manage-fields" element={<ProtectedRoute requiredRole="Field_Owner"><ManageFields /></ProtectedRoute>} />
+          <Route path="/book-field/:fieldId" element={<ProtectedRoute requiredRole="Player"><BookField /></ProtectedRoute>} />
           
           {/* Dashboard Routes */}
           <Route path="/player-dashboard" element={<ProtectedRoute requiredRole="Player"><PlayerDashboard /></ProtectedRoute>} />

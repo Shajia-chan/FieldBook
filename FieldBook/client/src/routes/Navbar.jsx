@@ -50,6 +50,7 @@ const Navbar = () => {
           <nav className="hidden md:flex items-center gap-1">
             {[
               { path: '/', label: 'Home' },
+              { path: '/available-fields', label: 'Available Fields' },
               { path: '/booking', label: 'Book Field' },
               { path: '/bookings', label: 'View Bookings' },
               { path: '/about', label: 'About' }
@@ -122,13 +123,22 @@ const Navbar = () => {
                     )}
 
                     {user?.role === 'Field_Owner' && (
-                      <Link
-                        to="/field-owner-dashboard"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        🏟️ Field Owner Dashboard
-                      </Link>
+                      <>
+                        <Link
+                          to="/manage-fields"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          🏑 Manage Fields
+                        </Link>
+                        <Link
+                          to="/field-owner-dashboard"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          🏟️ Field Owner Dashboard
+                        </Link>
+                      </>
                     )}
 
                     {user?.role === 'Admin' && (
@@ -187,6 +197,7 @@ const Navbar = () => {
               <div className="px-4 py-2 space-y-1">
                 {[
                   { path: '/', label: 'Home' },
+                  { path: '/available-fields', label: 'Available Fields' },
                   { path: '/booking', label: 'Book Field' },
                   { path: '/bookings', label: 'View Bookings' },
                   { path: '/about', label: 'About' }
