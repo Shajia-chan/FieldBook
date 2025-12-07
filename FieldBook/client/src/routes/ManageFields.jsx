@@ -9,7 +9,6 @@ const ManageFields = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showSlotsModal, setShowSlotsModal] = useState(false);
   const [selectedField, setSelectedField] = useState(null);
   const [formData, setFormData] = useState({
     fieldName: '',
@@ -19,10 +18,6 @@ const ManageFields = () => {
     pricePerHour: '',
     description: '',
     amenities: '',
-  });
-  const [slotsData, setSlotsData] = useState({
-    date: '',
-    slots: '',
   });
 
   // Redirect if not field owner
@@ -123,52 +118,6 @@ const ManageFields = () => {
     }
   };
 
-  const handleAddSlots = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    try {
-      const token = localStorage.getItem('token');
-      const userData = JSON.parse(localStorage.getItem('user'));
-
-      const slots = slotsData.slots
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s);
-
-      const response = await fetch(
-        `http://localhost:3000/fields/${selectedField._id}/slots/add`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            userid: userData._id,
-          },
-          body: JSON.stringify({
-            date: new Date(slotsData.date).toISOString(),
-            slots,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to add slots: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      const updatedFields = fields.map(f =>
-        f._id === selectedField._id ? data.field : f
-      );
-      setFields(updatedFields);
-      setShowSlotsModal(false);
-      setSlotsData({ date: '', slots: '' });
-      setSelectedField(null);
-    } catch (err) {
-      setError(err.message || 'Failed to add slots');
-    }
-  };
 
   const handleDeleteField = async (fieldId) => {
     if (!window.confirm('Are you sure you want to delete this field?')) return;
@@ -300,17 +249,8 @@ const ManageFields = () => {
 
                   <div className="pt-4 flex gap-3">
                     <button
-                      onClick={() => {
-                        setSelectedField(field);
-                        setShowSlotsModal(true);
-                      }}
-                      className="flex-1 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 font-medium transition-colors"
-                    >
-                      Add Time Slots
-                    </button>
-                    <button
                       onClick={() => handleDeleteField(field._id)}
-                      className="flex-1 px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-medium transition-colors"
+                      className="w-full px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-medium transition-colors"
                     >
                       Delete
                     </button>
@@ -458,89 +398,6 @@ const ManageFields = () => {
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                 >
                   Create Field
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Slots Modal */}
-      {showSlotsModal && selectedField && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-xl w-full">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Add Time Slots</h2>
-              <button
-                onClick={() => {
-                  setShowSlotsModal(false);
-                  setSelectedField(null);
-                }}
-                className="text-2xl font-bold hover:text-blue-200"
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleAddSlots} className="p-6 space-y-4">
-              <div>
-                <p className="font-semibold text-gray-900 mb-2">{selectedField.fieldName}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date *
-                </label>
-                <input
-                  type="date"
-                  value={slotsData.date}
-                  onChange={(e) =>
-                    setSlotsData(prev => ({
-                      ...prev,
-                      date: e.target.value,
-                    }))
-                  }
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Time Slots (comma-separated) *
-                </label>
-                <input
-                  type="text"
-                  value={slotsData.slots}
-                  onChange={(e) =>
-                    setSlotsData(prev => ({
-                      ...prev,
-                      slots: e.target.value,
-                    }))
-                  }
-                  placeholder="09:00-10:00, 10:00-11:00, 11:00-12:00"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-xs text-gray-600 mt-1">Format: HH:MM-HH:MM</p>
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSlotsModal(false);
-                    setSelectedField(null);
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  Add Slots
                 </button>
               </div>
             </form>

@@ -1,6 +1,66 @@
 import Field from '../models/field.model.js';
 import User from '../models/user.model.js';
 
+// Helper function to generate 1.5-hour slots from 8 AM to 10 PM
+const generateDailySlots = () => {
+  const slots = [];
+  const startHour = 8; // 8 AM
+  const endHour = 22; // 10 PM
+  const slotDuration = 1.5; // 1.5 hours
+
+  let currentHour = startHour;
+  let currentMinute = 0;
+
+  while (currentHour < endHour) {
+    const startTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+    
+    // Calculate end time (add 1.5 hours)
+    let endTimeHour = currentHour;
+    let endTimeMinute = currentMinute + 90; // 90 minutes
+
+    if (endTimeMinute >= 60) {
+      endTimeHour += Math.floor(endTimeMinute / 60);
+      endTimeMinute = endTimeMinute % 60;
+    }
+
+    // Don't add slot if it would go past 10 PM
+    if (endTimeHour > endHour) {
+      break;
+    }
+
+    const endTime = `${String(endTimeHour).padStart(2, '0')}:${String(endTimeMinute).padStart(2, '0')}`;
+    slots.push({
+      time: `${startTime}-${endTime}`,
+      isBooked: false,
+    });
+
+    // Move to next slot
+    currentHour = endTimeHour;
+    currentMinute = endTimeMinute;
+  }
+
+  return slots;
+};
+
+// Helper function to generate slots for next 30 days
+const generateAvailableSlots = () => {
+  const slots = [];
+  const dailySlots = generateDailySlots();
+
+  for (let i = 0; i < 30; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    date.setHours(0, 0, 0, 0);
+
+    slots.push({
+      date: date,
+      slots: JSON.parse(JSON.stringify(dailySlots)), // Deep copy of daily slots
+    });
+  }
+
+  return slots;
+};
+
 // Create a new field
 export const createField = async (req, res) => {
   try {
@@ -31,6 +91,9 @@ export const createField = async (req, res) => {
       return res.status(403).json({ message: 'Only Field Owners can create fields' });
     }
 
+    // Generate available slots for next 30 days
+    const availableSlots = generateAvailableSlots();
+
     // Create field
     const field = new Field({
       fieldName,
@@ -41,6 +104,7 @@ export const createField = async (req, res) => {
       description: description || null,
       amenities: amenities || [],
       fieldOwner: userId,
+      availableSlots,
     });
 
     await field.save();
@@ -79,9 +143,18 @@ export const getAllFields = async (req, res) => {
       filter.fieldCapacity = { $gte: parseInt(minCapacity) };
     }
 
-    const fields = await Field.find(filter)
+    let fields = await Field.find(filter)
       .populate('fieldOwner', 'firstName lastName email mobile')
       .sort({ createdAt: -1 });
+
+    // Ensure all fields have slots generated
+    for (let field of fields) {
+      if (!field.availableSlots || field.availableSlots.length === 0) {
+        const availableSlots = generateAvailableSlots();
+        field.availableSlots = availableSlots;
+        await field.save();
+      }
+    }
 
     return res.status(200).json({
       message: 'Fields retrieved successfully',
@@ -102,6 +175,13 @@ export const getFieldById = async (req, res) => {
 
     if (!field) {
       return res.status(404).json({ message: 'Field not found' });
+    }
+
+    // If field has no availableSlots, generate them
+    if (!field.availableSlots || field.availableSlots.length === 0) {
+      const availableSlots = generateAvailableSlots();
+      field.availableSlots = availableSlots;
+      await field.save();
     }
 
     return res.status(200).json({
@@ -209,53 +289,10 @@ export const deleteField = async (req, res) => {
 // Add available slots
 export const addAvailableSlots = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { date, slots } = req.body;
-    const userId = req.headers.userid || req.body.userId;
-
-    if (!userId) {
-      return res.status(401).json({ message: 'User ID not found' });
-    }
-
-    if (!date || !slots || slots.length === 0) {
-      return res.status(400).json({ message: 'Date and slots are required' });
-    }
-
-    const field = await Field.findById(id);
-
-    if (!field) {
-      return res.status(404).json({ message: 'Field not found' });
-    }
-
-    // Check if user is the field owner
-    if (field.fieldOwner.toString() !== userId.toString()) {
-      return res.status(403).json({ message: 'You can only add slots to your own fields' });
-    }
-
-    // Check if date already exists
-    const existingSlot = field.availableSlots.find(
-      slot => new Date(slot.date).toDateString() === new Date(date).toDateString()
-    );
-
-    if (existingSlot) {
-      // Merge slots
-      existingSlot.slots = [
-        ...existingSlot.slots,
-        ...slots.map(time => ({ time, isBooked: false })),
-      ];
-    } else {
-      // Add new date with slots
-      field.availableSlots.push({
-        date: new Date(date),
-        slots: slots.map(time => ({ time, isBooked: false })),
-      });
-    }
-
-    await field.save();
-
+    // This endpoint is no longer needed as slots are auto-generated
+    // Keeping it for backward compatibility but it just returns a message
     return res.status(200).json({
-      message: 'Slots added successfully',
-      field,
+      message: 'Time slots are automatically generated for all fields (8 AM - 10 PM, 1.5-hour slots)',
     });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Server error' });
@@ -276,6 +313,13 @@ export const getAvailableSlotsForDate = async (req, res) => {
 
     if (!field) {
       return res.status(404).json({ message: 'Field not found' });
+    }
+
+    // If field has no availableSlots, generate them
+    if (!field.availableSlots || field.availableSlots.length === 0) {
+      const availableSlots = generateAvailableSlots();
+      field.availableSlots = availableSlots;
+      await field.save();
     }
 
     const slotDate = field.availableSlots.find(
