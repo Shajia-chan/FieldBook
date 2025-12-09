@@ -1,25 +1,44 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const Bookings = () => {
+  const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [filter, setFilter] = useState('all'); // all, pending, confirmed, cancelled
 
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [user]);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3000/bookings');
-      const data = await response.json();
+      setError('');
 
-      if (data.success) {
-        setBookings(data.data);
+      if (!user) {
+        setError('Please log in to view bookings');
+        return;
       }
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/bookings?userId=${user._id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          userid: user._id,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch bookings: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setBookings(data.bookings || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);
+      setError(error.message || 'Failed to fetch bookings');
     } finally {
       setLoading(false);
     }
@@ -54,7 +73,7 @@ const Bookings = () => {
   });
 
   const groupedBookings = filteredBookings.reduce((acc, booking) => {
-    const date = new Date(booking.date).toDateString();
+    const date = new Date(booking.bookingDate).toDateString();
     if (!acc[date]) {
       acc[date] = [];
     }
@@ -98,6 +117,13 @@ const Bookings = () => {
           ))}
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-8">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
         {/* Loading State */}
         {loading ? (
           <div className="text-center py-20">
@@ -126,7 +152,7 @@ const Bookings = () => {
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
                   <h2 className="text-lg font-bold text-gray-700 bg-white px-4 py-2 rounded-full shadow-sm">
-                    {formatDate(dayBookings[0].date)}
+                    {formatDate(dayBookings[0].bookingDate)}
                   </h2>
                   <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
                 </div>
@@ -140,16 +166,19 @@ const Bookings = () => {
                         key={booking._id}
                         className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border-2 border-gray-100"
                       >
-                        {/* Time Slot */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">⏰</span>
-                            <span className="font-bold text-lg text-gray-900">
-                              {booking.timeSlot}
-                            </span>
+                        {/* Field Name and Time Slot */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Field</p>
+                            <h3 className="font-bold text-lg text-gray-900">
+                              {booking.field?.fieldName || 'N/A'}
+                            </h3>
+                            <p className="text-sm text-gray-600 mt-1">
+                              🕐 {booking.timeSlot}
+                            </p>
                           </div>
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
+                            className={`px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${getStatusColor(
                               booking.status
                             )}`}
                           >
@@ -163,31 +192,43 @@ const Bookings = () => {
                         {/* Booking Details */}
                         <div className="space-y-3">
                           <div className="flex items-start gap-3">
-                            <span className="text-xl">👤</span>
+                            <span className="text-xl">📍</span>
                             <div>
                               <p className="text-xs text-gray-500 font-medium">
-                                Name
+                                Location
                               </p>
                               <p className="text-sm font-semibold text-gray-900">
-                                {booking.name}
+                                {booking.field?.fieldLocation || 'N/A'}
                               </p>
                             </div>
                           </div>
 
                           <div className="flex items-start gap-3">
-                            <span className="text-xl">📞</span>
+                            <span className="text-xl">👥</span>
                             <div>
                               <p className="text-xs text-gray-500 font-medium">
-                                Phone
+                                Number of Players
                               </p>
                               <p className="text-sm font-semibold text-gray-900">
-                                {booking.phoneNumber}
+                                {booking.numberOfPlayers}
                               </p>
                             </div>
                           </div>
 
                           <div className="flex items-start gap-3">
-                            <span className="text-xl">🕒</span>
+                            <span className="text-xl">💰</span>
+                            <div>
+                              <p className="text-xs text-gray-500 font-medium">
+                                Total Price
+                              </p>
+                              <p className="text-sm font-semibold text-green-600">
+                                ${booking.totalPrice}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <span className="text-xl">📅</span>
                             <div>
                               <p className="text-xs text-gray-500 font-medium">
                                 Booked At

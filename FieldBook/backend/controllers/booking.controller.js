@@ -1,28 +1,47 @@
 import Booking from "../models/booking.model.js";
+import Field from "../models/field.model.js";
+import User from "../models/user.model.js";
 
 // Create a new booking
 export const createBooking = async (req, res) => {
   try {
-    const { name, phoneNumber, date, timeSlot } = req.body;
+    const { field, bookingDate, timeSlot, numberOfPlayers, totalPrice } = req.body;
+    const userId = req.headers.userid || req.body.userId;
 
     // Validate required fields
-    if (!name || !phoneNumber || !date || !timeSlot) {
+    if (!field || !bookingDate || !timeSlot || !numberOfPlayers || !totalPrice) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
       });
     }
 
-    // Check if the time slot is already booked for the selected date
-    // Normalize the date to start of day for comparison
-    const searchDate = new Date(date);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User ID not found",
+      });
+    }
+
+    // Check if field exists
+    const fieldData = await Field.findById(field);
+    if (!fieldData) {
+      return res.status(404).json({
+        success: false,
+        message: "Field not found",
+      });
+    }
+
+    // Check if the time slot is already booked
+    const searchDate = new Date(bookingDate);
     searchDate.setHours(0, 0, 0, 0);
     
     const nextDay = new Date(searchDate);
     nextDay.setDate(nextDay.getDate() + 1);
 
     const existingBooking = await Booking.findOne({
-      date: {
+      field,
+      bookingDate: {
         $gte: searchDate,
         $lt: nextDay
       },
@@ -39,106 +58,80 @@ export const createBooking = async (req, res) => {
 
     // Create new booking
     const booking = await Booking.create({
-      name,
-      phoneNumber,
-      date: searchDate,
+      field,
+      player: userId,
+      bookingDate: searchDate,
       timeSlot,
+      numberOfPlayers,
+      totalPrice,
+      status: "confirmed",
     });
+
+    // Populate field and player information
+    await booking.populate('field', 'fieldName fieldLocation fieldType pricePerHour');
+    await booking.populate('player', 'firstName lastName email');
 
     res.status(201).json({
       success: true,
       message: "Booking created successfully",
-      data: booking,
+      booking,
     });
   } catch (error) {
     console.error("Create booking error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message || "Server error",
     });
   }
 };
 
-// Get all bookings
-export const getAllBookings = async (req, res) => {
+// Get user's bookings
+export const getUserBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find().sort({ date: 1, timeSlot: 1 });
+    const userId = req.headers.userid || req.body.userId || req.query.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User ID not found",
+      });
+    }
+
+    const bookings = await Booking.find({ player: userId })
+      .populate('field', 'fieldName fieldLocation fieldType pricePerHour')
+      .populate('player', 'firstName lastName email')
+      .sort({ bookingDate: -1 });
 
     res.status(200).json({
       success: true,
-      data: bookings,
+      bookings,
     });
   } catch (error) {
     console.error("Get bookings error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message || "Server error",
     });
   }
 };
 
-// Get available time slots for a specific date
-export const getAvailableSlots = async (req, res) => {
+// Get all bookings (admin)
+export const getAllBookings = async (req, res) => {
   try {
-    const { date } = req.query;
-
-    if (!date) {
-      return res.status(400).json({
-        success: false,
-        message: "Date is required",
-      });
-    }
-
-    // All available time slots
-    const allSlots = [
-      "08:00 AM - 09:00 AM",
-      "09:00 AM - 10:00 AM",
-      "10:00 AM - 11:00 AM",
-      "11:00 AM - 12:00 PM",
-      "12:00 PM - 01:00 PM",
-      "01:00 PM - 02:00 PM",
-      "02:00 PM - 03:00 PM",
-      "03:00 PM - 04:00 PM",
-      "04:00 PM - 05:00 PM",
-      "05:00 PM - 06:00 PM",
-      "06:00 PM - 07:00 PM",
-      "07:00 PM - 08:00 PM",
-      "08:00 PM - 09:00 PM",
-      "09:00 PM - 10:00 PM",
-    ];
-
-    // Get booked slots for the date
-    // Normalize the date to start of day for comparison
-    const searchDate = new Date(date);
-    searchDate.setHours(0, 0, 0, 0);
-    
-    const nextDay = new Date(searchDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    const bookedSlots = await Booking.find({
-      date: {
-        $gte: searchDate,
-        $lt: nextDay
-      },
-      status: { $ne: "cancelled" },
-    }).select("timeSlot");
-
-    const bookedTimeSlots = bookedSlots.map((booking) => booking.timeSlot);
-
-    // Filter available slots
-    const availableSlots = allSlots.filter(
-      (slot) => !bookedTimeSlots.includes(slot)
-    );
+    const bookings = await Booking.find()
+      .populate('field', 'fieldName fieldLocation fieldType pricePerHour')
+      .populate('player', 'firstName lastName email')
+      .sort({ bookingDate: -1 });
 
     res.status(200).json({
       success: true,
-      data: availableSlots,
+      bookings,
     });
   } catch (error) {
-    console.error("Get available slots error:", error);
+    console.error("Get bookings error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message || "Server error",
     });
   }
 };
@@ -147,12 +140,16 @@ export const getAvailableSlots = async (req, res) => {
 export const cancelBooking = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.headers.userid || req.body.userId;
 
-    const booking = await Booking.findByIdAndUpdate(
-      id,
-      { status: "cancelled" },
-      { new: true }
-    );
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User ID not found",
+      });
+    }
+
+    const booking = await Booking.findById(id);
 
     if (!booking) {
       return res.status(404).json({
@@ -161,16 +158,27 @@ export const cancelBooking = async (req, res) => {
       });
     }
 
+    // Check if user owns the booking
+    if (booking.player.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only cancel your own bookings",
+      });
+    }
+
+    booking.status = "cancelled";
+    await booking.save();
+
     res.status(200).json({
       success: true,
       message: "Booking cancelled successfully",
-      data: booking,
+      booking,
     });
   } catch (error) {
     console.error("Cancel booking error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message || "Server error",
     });
   }
 };
