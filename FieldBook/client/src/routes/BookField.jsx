@@ -102,8 +102,8 @@ const BookField = () => {
       const token = localStorage.getItem('token');
       const userData = JSON.parse(localStorage.getItem('user'));
 
-      // Calculate total price (1.5 hours per slot)
-      const totalPrice = field.pricePerHour * 1.5 * bookingData.numberOfPlayers;
+      // Calculate total price (fixed 3000 BDT per field, not multiplied by players)
+      const totalPrice = 3000;
 
       const bookingPayload = {
         field: fieldId,
@@ -348,9 +348,9 @@ const BookField = () => {
 
                 <div className="border-t border-gray-200 pt-4">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-700">Price (1.5 hrs × {bookingData.numberOfPlayers} player{bookingData.numberOfPlayers > 1 ? 's' : ''}):</span>
+                    <span className="text-gray-700">Price (Per Field):</span>
                     <span className="text-2xl font-bold text-green-600">
-                      ${(field.pricePerHour * 1.5 * bookingData.numberOfPlayers).toFixed(2)}
+                      ৳3000
                     </span>
                   </div>
 
