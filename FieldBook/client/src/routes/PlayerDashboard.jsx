@@ -108,17 +108,29 @@ const PlayerDashboard = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button 
+              onClick={() => navigate('/available-fields')}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            >
               Browse Fields
             </button>
-            <button className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
+            <button 
+              onClick={() => navigate('/bookings')}
+              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+            >
               My Bookings
             </button>
-            <button className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-              Find Players
-            </button>
-            <button className="w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+            <button 
+              onClick={() => navigate('/profile')}
+              className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+            >
               Edit Profile
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+            >
+              Logout
             </button>
           </div>
         </div>
