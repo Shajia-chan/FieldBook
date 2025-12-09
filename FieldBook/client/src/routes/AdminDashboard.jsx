@@ -57,8 +57,11 @@ const AdminDashboard = () => {
             <button className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
               Manage Fields
             </button>
-            <button className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-              View All Bookings
+            <button 
+              onClick={() => navigate('/admin-bookings')}
+              className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+            >
+              Manage Bookings
             </button>
             <button className="w-full px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
               Revenue Reports

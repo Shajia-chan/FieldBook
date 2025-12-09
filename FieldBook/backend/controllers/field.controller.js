@@ -1,5 +1,6 @@
 import Field from '../models/field.model.js';
 import User from '../models/user.model.js';
+import Booking from '../models/booking.model.js';
 
 // Helper function to generate 1.5-hour slots from 8 AM to 10 PM
 const generateDailySlots = () => {
@@ -333,9 +334,34 @@ export const getAvailableSlotsForDate = async (req, res) => {
       });
     }
 
+    // Make a deep copy of slots
+    const slotsWithBookingStatus = JSON.parse(JSON.stringify(slotDate.slots));
+
+    // Check for existing bookings (pending or confirmed) for this date and field
+    const searchDate = new Date(date);
+    searchDate.setHours(0, 0, 0, 0);
+    
+    const nextDay = new Date(searchDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    const existingBookings = await Booking.find({
+      field: id,
+      bookingDate: {
+        $gte: searchDate,
+        $lt: nextDay
+      },
+      status: { $ne: "cancelled" }, // Include both pending and confirmed
+    });
+
+    // Mark booked slots
+    slotsWithBookingStatus.forEach(slot => {
+      const isBooked = existingBookings.some(booking => booking.timeSlot === slot.time);
+      slot.isBooked = isBooked;
+    });
+
     return res.status(200).json({
       message: 'Available slots retrieved successfully',
-      slots: slotDate.slots,
+      slots: slotsWithBookingStatus,
     });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Server error' });

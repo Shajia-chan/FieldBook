@@ -166,9 +166,11 @@ const Bookings = () => {
                         key={booking._id}
                         className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border-2 border-gray-100"
                       >
-                        {/* Field Name and Time Slot */}
+                        {/* Order ID and Status */}
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Order ID</p>
+                            <p className="text-sm font-bold text-blue-600 mb-2">{booking.orderId}</p>
                             <p className="text-xs text-gray-500 font-medium mb-1">Field</p>
                             <h3 className="font-bold text-lg text-gray-900">
                               {booking.field?.fieldName || 'N/A'}
@@ -222,7 +224,7 @@ const Bookings = () => {
                                 Total Price
                               </p>
                               <p className="text-sm font-semibold text-green-600">
-                                ${booking.totalPrice}
+                                ৳{booking.totalPrice}
                               </p>
                             </div>
                           </div>

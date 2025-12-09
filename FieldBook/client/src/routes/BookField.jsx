@@ -133,7 +133,7 @@ const BookField = () => {
 
       const data = await response.json();
 
-      setSuccess('Field booked successfully!');
+      setSuccess('Booking request submitted! Awaiting admin confirmation. You will see the status in your bookings.');
       setTimeout(() => {
         navigate('/bookings');
       }, 2000);

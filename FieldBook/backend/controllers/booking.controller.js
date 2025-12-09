@@ -2,6 +2,13 @@ import Booking from "../models/booking.model.js";
 import Field from "../models/field.model.js";
 import User from "../models/user.model.js";
 
+// Generate unique order ID
+const generateOrderId = () => {
+  const timestamp = Date.now().toString(36);
+  const randomStr = Math.random().toString(36).substr(2, 9);
+  return `ORD-${timestamp}-${randomStr}`.toUpperCase();
+};
+
 // Create a new booking
 export const createBooking = async (req, res) => {
   try {
@@ -56,15 +63,19 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    // Create new booking
+    // Generate unique order ID
+    const orderId = generateOrderId();
+
+    // Create new booking with pending status
     const booking = await Booking.create({
+      orderId,
       field,
       player: userId,
       bookingDate: searchDate,
       timeSlot,
       numberOfPlayers,
       totalPrice,
-      status: "confirmed",
+      status: "pending",
     });
 
     // Populate field and player information
@@ -73,7 +84,7 @@ export const createBooking = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Booking created successfully",
+      message: "Booking created successfully. Awaiting admin confirmation.",
       booking,
     });
   } catch (error) {
@@ -121,7 +132,10 @@ export const getAllBookings = async (req, res) => {
     const bookings = await Booking.find()
       .populate('field', 'fieldName fieldLocation fieldType pricePerHour')
       .populate('player', 'firstName lastName email')
-      .sort({ bookingDate: -1 });
+      .sort({ createdAt: -1 });
+
+    console.log('Total bookings fetched:', bookings.length); // Debug log
+    console.log('Sample booking:', bookings[0]); // Debug log
 
     res.status(200).json({
       success: true,
@@ -132,6 +146,9 @@ export const getAllBookings = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Server error",
+    });
+  }
+};
     });
   }
 };
@@ -176,6 +193,92 @@ export const cancelBooking = async (req, res) => {
     });
   } catch (error) {
     console.error("Cancel booking error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
+  }
+};
+
+// Confirm a booking (Admin only)
+export const confirmBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    if (booking.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending bookings can be confirmed",
+      });
+    }
+
+    booking.status = "confirmed";
+    await booking.save();
+
+    // Populate before sending response
+    await booking.populate('field', 'fieldName fieldLocation fieldType pricePerHour');
+    await booking.populate('player', 'firstName lastName email');
+
+    res.status(200).json({
+      success: true,
+      message: "Booking confirmed successfully",
+      booking,
+    });
+  } catch (error) {
+    console.error("Confirm booking error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
+  }
+};
+
+// Reject a booking (Admin only)
+export const rejectBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    if (booking.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending bookings can be rejected",
+      });
+    }
+
+    booking.status = "cancelled";
+    booking.cancellationReason = reason || "Rejected by admin";
+    await booking.save();
+
+    // Populate before sending response
+    await booking.populate('field', 'fieldName fieldLocation fieldType pricePerHour');
+    await booking.populate('player', 'firstName lastName email');
+
+    res.status(200).json({
+      success: true,
+      message: "Booking rejected successfully",
+      booking,
+    });
+  } catch (error) {
+    console.error("Reject booking error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Server error",

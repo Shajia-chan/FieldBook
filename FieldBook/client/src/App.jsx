@@ -10,6 +10,7 @@ import UserProfile from "./routes/UserProfile.jsx";
 import PlayerDashboard from "./routes/PlayerDashboard.jsx";
 import FieldOwnerDashboard from "./routes/FieldOwnerDashboard.jsx";
 import AdminDashboard from "./routes/AdminDashboard.jsx";
+import AdminBookingPanel from "./routes/AdminBookingPanel.jsx";
 import AvailableFields from "./routes/AvailableFields.jsx";
 import ManageFields from "./routes/ManageFields.jsx";
 import BookField from "./routes/BookField.jsx";
@@ -39,6 +40,9 @@ const App = () => {
           <Route path="/player-dashboard" element={<ProtectedRoute requiredRole="Player"><PlayerDashboard /></ProtectedRoute>} />
           <Route path="/field-owner-dashboard" element={<ProtectedRoute requiredRole="Field_Owner"><FieldOwnerDashboard /></ProtectedRoute>} />
           <Route path="/admin-dashboard" element={<ProtectedRoute requiredRole="Admin"><AdminDashboard /></ProtectedRoute>} />
+          
+          {/* Admin Booking Management */}
+          <Route path="/admin-bookings" element={<ProtectedRoute requiredRole="Admin"><AdminBookingPanel /></ProtectedRoute>} />
           
           <Route path="*" element={
             <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
