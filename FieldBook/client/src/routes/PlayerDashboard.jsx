@@ -1,14 +1,73 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const PlayerDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [bookings, setBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [bookingsError, setBookingsError] = useState('');
+
+  useEffect(() => {
+    fetchUserBookings();
+  }, [user]);
+
+  const fetchUserBookings = async () => {
+    try {
+      setLoadingBookings(true);
+      setBookingsError('');
+
+      if (!user) return;
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/bookings?userId=${user._id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          userid: user._id,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch bookings: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setBookings(data.bookings || []);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      setBookingsError(error.message || 'Failed to fetch bookings');
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'confirmed':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
@@ -93,6 +152,63 @@ const PlayerDashboard = () => {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* My Bookings Section */}
+        <div className="mt-8 bg-white rounded-lg shadow p-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">My Bookings</h2>
+          
+          {bookingsError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <p className="text-red-800">{bookingsError}</p>
+            </div>
+          )}
+
+          {loadingBookings ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              <p className="mt-4 text-gray-600">Loading bookings...</p>
+            </div>
+          ) : bookings.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">No bookings yet. Start by booking a field!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bookings.map((booking) => (
+                <div key={booking._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-bold text-gray-900">{booking.field?.fieldName || 'Field'}</h3>
+                      <p className="text-sm text-gray-600">{booking.field?.fieldLocation || 'Location'}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(booking.status)}`}>
+                      {booking.status.toUpperCase()}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">📅 Date:</span>
+                      <span className="font-semibold">{formatDate(booking.bookingDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">🕐 Time:</span>
+                      <span className="font-semibold">{booking.timeSlot}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">👥 Players:</span>
+                      <span className="font-semibold">{booking.numberOfPlayers}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-200 pt-2 mt-2">
+                      <span className="text-gray-600">💰 Price:</span>
+                      <span className="font-bold text-green-600">৳{booking.totalPrice}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
