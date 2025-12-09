@@ -50,7 +50,10 @@ const UserProfile = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          userId: user._id,
+          ...formData,
+        }),
       });
 
       const data = await response.json();
