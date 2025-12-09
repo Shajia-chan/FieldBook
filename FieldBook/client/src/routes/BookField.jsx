@@ -132,6 +132,8 @@ const BookField = () => {
       }
 
       const data = await response.json();
+      console.log('Booking response from backend:', data.booking);
+      console.log('Booking status:', data.booking?.status);
 
       setSuccess('Booking request submitted! Awaiting admin confirmation. You will see the status in your bookings.');
       setTimeout(() => {

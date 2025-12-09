@@ -6,7 +6,8 @@ import User from "../models/user.model.js";
 const generateOrderId = () => {
   const timestamp = Date.now().toString(36);
   const randomStr = Math.random().toString(36).substr(2, 9);
-  return `ORD-${timestamp}-${randomStr}`.toUpperCase();
+  const extra = Math.random().toString(36).substr(2, 5);
+  return `ORD-${timestamp}-${randomStr}-${extra}`.toUpperCase();
 };
 
 // Create a new booking
@@ -66,8 +67,10 @@ export const createBooking = async (req, res) => {
     // Generate unique order ID
     const orderId = generateOrderId();
 
+    console.log('Creating booking with status: pending');
+
     // Create new booking with pending status
-    const booking = await Booking.create({
+    const bookingData = {
       orderId,
       field,
       player: userId,
@@ -76,16 +79,65 @@ export const createBooking = async (req, res) => {
       numberOfPlayers,
       totalPrice,
       status: "pending",
+    };
+    
+    console.log('=== BOOKING CREATION ===');
+    console.log('Booking data BEFORE save:', bookingData);
+
+    const booking = await Booking.create(bookingData);
+
+    console.log('Booking data AFTER create (in memory):', {
+      _id: booking._id,
+      status: booking.status,
+      statusType: typeof booking.status,
+    });
+
+    // Refetch from database to verify
+    const verifyBooking = await Booking.findById(booking._id);
+    console.log('Booking data AFTER findById (from DB):', {
+      _id: verifyBooking._id,
+      status: verifyBooking.status,
+      statusType: typeof verifyBooking.status,
+    });
+
+    // Check raw MongoDB document
+    const rawDoc = await Booking.collection.findOne({ _id: booking._id });
+    console.log('Raw MongoDB document status field:', rawDoc?.status);
+    console.log('=== END BOOKING CREATION ===');
+
+    console.log('New booking created:', {
+      orderId: booking.orderId,
+      status: booking.status,
+      field: booking.field,
+      player: booking.player,
     });
 
     // Populate field and player information
     await booking.populate('field', 'fieldName fieldLocation fieldType pricePerHour');
     await booking.populate('player', 'firstName lastName email');
 
+    console.log('Before sending response - booking status:', booking.status);
+    console.log('Booking object to send:', {
+      _id: booking._id,
+      orderId: booking.orderId,
+      status: booking.status,
+      bookingDate: booking.bookingDate,
+      timeSlot: booking.timeSlot,
+    });
+
+    // Convert to plain object to ensure no Mongoose getters/setters interfere
+    const bookingPlain = booking.toObject();
+    console.log('Booking as plain object:', {
+      _id: bookingPlain._id,
+      orderId: bookingPlain.orderId,
+      status: bookingPlain.status,
+      statusType: typeof bookingPlain.status,
+    });
+
     res.status(201).json({
       success: true,
       message: "Booking created successfully. Awaiting admin confirmation.",
-      booking,
+      booking: bookingPlain,
     });
   } catch (error) {
     console.error("Create booking error:", error);
@@ -111,7 +163,22 @@ export const getUserBookings = async (req, res) => {
     const bookings = await Booking.find({ player: userId })
       .populate('field', 'fieldName fieldLocation fieldType pricePerHour')
       .populate('player', 'firstName lastName email')
-      .sort({ bookingDate: -1 });
+      .sort({ createdAt: -1 });
+
+    // Debug each booking
+    bookings.forEach((b, index) => {
+      console.log(`Booking ${index}:`, {
+        orderId: b.orderId,
+        status: b.status,
+        statusType: typeof b.status,
+        timeSlot: b.timeSlot,
+        createdAt: b.createdAt,
+      });
+    });
+
+    console.log(`Fetched ${bookings.length} bookings for user ${userId}:`, 
+      bookings.map(b => ({ orderId: b.orderId, status: b.status }))
+    );
 
     res.status(200).json({
       success: true,
@@ -146,9 +213,6 @@ export const getAllBookings = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Server error",
-    });
-  }
-};
     });
   }
 };

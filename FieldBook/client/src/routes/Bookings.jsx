@@ -35,6 +35,8 @@ const Bookings = () => {
       }
 
       const data = await response.json();
+      console.log('Bookings fetched from API:', data.bookings);
+      console.log('Booking statuses:', data.bookings?.map(b => ({ orderId: b.orderId, status: b.status })));
       setBookings(data.bookings || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);

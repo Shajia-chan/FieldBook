@@ -22,6 +22,43 @@ app.get('/test', (req, res) => {
   res.status(200).json({ message: 'Server is working' });
 });
 
+// Debug route - check booking schema
+app.get('/debug/bookings-sample', async (req, res) => {
+  try {
+    const Booking = (await import('./models/booking.model.js')).default;
+    const bookings = await Booking.find().limit(3);
+    res.status(200).json({
+      message: 'Sample bookings from database',
+      count: bookings.length,
+      bookings: bookings.map(b => ({
+        _id: b._id,
+        orderId: b.orderId,
+        status: b.status,
+        statusType: typeof b.status,
+        timeSlot: b.timeSlot,
+        createdAt: b.createdAt,
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check the booking model schema
+app.get('/debug/booking-schema', (req, res) => {
+  try {
+    const Booking = require('./models/booking.model.js').default;
+    const schemaObj = Booking.schema.obj;
+    res.status(200).json({
+      message: 'Booking schema',
+      statusField: schemaObj.status,
+      allFields: Object.keys(schemaObj),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Correct variable name, should be 'test' not 'text'
 // console.log('Text from .env:', process.env.test);  // Logs the value of 'test' from the .env file
 
