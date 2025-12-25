@@ -2,6 +2,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const weatherRoutes = require("./routes/weather.routes");
 require('dotenv').config();
 
 const app = express();
@@ -13,7 +14,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use("/api/weather", weatherRoutes);
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/football-booking';
 
@@ -70,6 +71,8 @@ app.use((req, res) => {
   });
 });
 
+
+
 // Error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
@@ -79,6 +82,8 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
 });
+
+
 
 // Start server
 const PORT = process.env.PORT || 3000;
