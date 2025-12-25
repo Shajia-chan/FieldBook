@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const weatherRoutes = require("./routes/weather.routes");
+const staffRoutes = require('./routes/staff.route');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/weather", weatherRoutes);
+app.use('/api/staff', staffRoutes);
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/football-booking';
 
