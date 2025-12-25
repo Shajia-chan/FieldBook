@@ -275,3 +275,22 @@ export const deactivateUser = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+// Get user count (Admin dashboard stats)
+export const getUserCount = async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.status(200).json({
+      success: true,
+      count,
+    });
+  } catch (error) {
+    console.error('Get user count error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
+

@@ -17,6 +17,11 @@ const BookField = () => {
   });
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [rentedEquipment, setRentedEquipment] = useState({});
+  const [lockerBooked, setLockerBooked] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -43,7 +48,7 @@ const BookField = () => {
       setLoading(true);
       setError('');
 
-      const response = await fetch(`http://localhost:3000/fields/${fieldId}`);
+      const response = await fetch(`http://localhost:3000/api/fields/${fieldId}`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch field: ${response.statusText}`);
@@ -63,7 +68,7 @@ const BookField = () => {
       setLoadingSlots(true);
 
       const response = await fetch(
-        `http://localhost:3000/fields/${fieldId}/slots?date=${bookingData.bookingDate}`
+        `http://localhost:3000/api/fields/${fieldId}/slots?date=${bookingData.bookingDate}`
       );
       
       if (!response.ok) {
@@ -88,6 +93,26 @@ const BookField = () => {
     }));
   };
 
+  const handleEquipmentChange = (equipmentName, quantity) => {
+    setRentedEquipment(prev => {
+      const newEquipment = { ...prev };
+      if (quantity > 0) {
+        newEquipment[equipmentName] = quantity;
+      } else {
+        delete newEquipment[equipmentName];
+      }
+      return newEquipment;
+    });
+  };
+
+  const calculateEquipmentCost = () => {
+    if (!field || !field.equipment) return 0;
+    return Object.entries(rentedEquipment).reduce((total, [name, quantity]) => {
+      const equipment = field.equipment.find(e => e.name === name);
+      return total + (equipment ? equipment.pricePerItem * quantity : 0);
+    }, 0);
+  };
+
   const handleBooking = async (e) => {
     e.preventDefault();
     setError('');
@@ -98,12 +123,40 @@ const BookField = () => {
       return;
     }
 
+    if (!paymentMethod) {
+      setError('Please select a payment method');
+      return;
+    }
+
+    if (paymentMethod === 'pay_now' && !selectedPaymentOption) {
+      setError('Please select bKash or Nagad');
+      return;
+    }
+
+    if (paymentMethod === 'pay_now' && !transactionId.trim()) {
+      setError('Please enter transaction ID');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const userData = JSON.parse(localStorage.getItem('user'));
 
       // Calculate total price (fixed 3000 BDT per field, not multiplied by players)
-      const totalPrice = 3000;
+      const fieldPrice = 3000;
+      const equipmentCost = calculateEquipmentCost();
+      const lockerCost = lockerBooked && field.lockerAvailable ? (field.lockerPrice || 200) : 0;
+      const totalPrice = fieldPrice + equipmentCost + lockerCost;
+
+      // Prepare rented equipment array
+      const rentedEquipmentArray = Object.entries(rentedEquipment).map(([name, quantity]) => {
+        const equipment = field.equipment.find(e => e.name === name);
+        return {
+          name,
+          quantity,
+          pricePerItem: equipment ? equipment.pricePerItem : 100,
+        };
+      });
 
       const bookingPayload = {
         field: fieldId,
@@ -111,10 +164,14 @@ const BookField = () => {
         timeSlot: bookingData.timeSlot,
         numberOfPlayers: bookingData.numberOfPlayers,
         totalPrice: totalPrice,
+        paymentMethod: paymentMethod === 'pay_later' ? 'pay_later' : selectedPaymentOption,
+        transactionId: paymentMethod === 'pay_now' ? transactionId : null,
+        rentedEquipment: rentedEquipmentArray,
+        lockerBooked: lockerBooked,
       };
 
       const response = await fetch(
-        `http://localhost:3000/bookings`,
+        `http://localhost:3000/api/bookings`,
         {
           method: 'POST',
           headers: {
@@ -348,17 +405,215 @@ const BookField = () => {
                   </p>
                 </div>
 
+                {/* Equipment Rental Section */}
+                {field.equipment && field.equipment.length > 0 && (
+                  <div className="border-t border-gray-200 pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Rent Equipment (Optional)
+                    </label>
+                    <div className="space-y-3">
+                      {field.equipment.filter(eq => eq.available).map((equipment, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{equipment.name}</p>
+                            <p className="text-sm text-gray-600">৳{equipment.pricePerItem} per item</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEquipmentChange(equipment.name, Math.max(0, (rentedEquipment[equipment.name] || 0) - 1))}
+                              className="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded hover:bg-gray-100"
+                            >
+                              −
+                            </button>
+                            <span className="w-8 text-center font-medium">
+                              {rentedEquipment[equipment.name] || 0}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleEquipmentChange(equipment.name, (rentedEquipment[equipment.name] || 0) + 1)}
+                              className="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded hover:bg-gray-100"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {calculateEquipmentCost() > 0 && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm font-medium text-gray-700">
+                          Equipment Cost: <span className="text-blue-600">৳{calculateEquipmentCost()}</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Locker Booking Option */}
+                {field.lockerAvailable && (
+                  <div className="border-t border-gray-200 pt-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={lockerBooked}
+                        onChange={(e) => setLockerBooked(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Book Locker (+৳{field.lockerPrice || 200} BDT)
+                      </span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1 ml-6">
+                      Secure storage for your belongings during the game
+                    </p>
+                  </div>
+                )}
+
+                {/* Payment Method Selection */}
                 <div className="border-t border-gray-200 pt-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-700">Price (Per Field):</span>
-                    <span className="text-2xl font-bold text-green-600">
-                      ৳3000
-                    </span>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Payment Method *
+                  </label>
+                  
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod('pay_later');
+                        setSelectedPaymentOption('');
+                        setTransactionId('');
+                      }}
+                      className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
+                        paymentMethod === 'pay_later'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-gray-900">Pay Later</span>
+                        {paymentMethod === 'pay_later' && (
+                          <span className="text-blue-600">✓</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Pay when you arrive at the field
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('pay_now')}
+                      className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
+                        paymentMethod === 'pay_now'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-gray-900">Pay Now</span>
+                        {paymentMethod === 'pay_now' && (
+                          <span className="text-blue-600">✓</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Pay via bKash or Nagad
+                      </p>
+                    </button>
+                  </div>
+
+                  {/* Payment Options - Show when Pay Now is selected */}
+                  {paymentMethod === 'pay_now' && (
+                    <div className="mt-4 space-y-3">
+                      <p className="text-sm font-medium text-gray-700">Select Payment Option:</p>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentOption('bkash')}
+                          className={`p-3 border-2 rounded-lg transition-all ${
+                            selectedPaymentOption === 'bkash'
+                              ? 'border-pink-500 bg-pink-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="text-center">
+                            <span className="font-bold text-pink-600">bKash</span>
+                            {selectedPaymentOption === 'bkash' && (
+                              <span className="block text-pink-600 mt-1">✓</span>
+                            )}
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentOption('nagad')}
+                          className={`p-3 border-2 rounded-lg transition-all ${
+                            selectedPaymentOption === 'nagad'
+                              ? 'border-orange-500 bg-orange-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="text-center">
+                            <span className="font-bold text-orange-600">Nagad</span>
+                            {selectedPaymentOption === 'nagad' && (
+                              <span className="block text-orange-600 mt-1">✓</span>
+                            )}
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Transaction ID Input */}
+                      {selectedPaymentOption && (
+                        <div className="mt-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Transaction ID *
+                          </label>
+                          <input
+                            type="text"
+                            value={transactionId}
+                            onChange={(e) => setTransactionId(e.target.value)}
+                            placeholder="Enter your transaction ID"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <p className="text-xs text-gray-600 mt-1">
+                            Enter the transaction ID from your {selectedPaymentOption === 'bkash' ? 'bKash' : 'Nagad'} payment
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700">Field Price:</span>
+                      <span className="font-semibold text-gray-900">৳3000</span>
+                    </div>
+                    {calculateEquipmentCost() > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-700">Equipment:</span>
+                        <span className="font-semibold text-gray-900">৳{calculateEquipmentCost()}</span>
+                      </div>
+                    )}
+                    {lockerBooked && field.lockerAvailable && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-700">Locker:</span>
+                        <span className="font-semibold text-gray-900">৳{field.lockerPrice || 200}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-gray-900 font-medium">Total:</span>
+                      <span className="text-2xl font-bold text-green-600">
+                        ৳{3000 + calculateEquipmentCost() + (lockerBooked && field.lockerAvailable ? (field.lockerPrice || 200) : 0)}
+                      </span>
+                    </div>
                   </div>
 
                   <button
                     type="submit"
-                    disabled={!bookingData.bookingDate || !bookingData.timeSlot}
+                    disabled={!bookingData.bookingDate || !bookingData.timeSlot || !paymentMethod}
                     className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Confirm Booking

@@ -73,6 +73,9 @@ export const createField = async (req, res) => {
       pricePerHour,
       description,
       amenities,
+      coverImage,
+      lockerAvailable,
+      lockerPrice,
     } = req.body;
 
     // Validate required fields
@@ -104,6 +107,9 @@ export const createField = async (req, res) => {
       pricePerHour,
       description: description || null,
       amenities: amenities || [],
+      coverImage: coverImage || null,
+      lockerAvailable: lockerAvailable || false,
+      lockerPrice: lockerPrice || 200,
       fieldOwner: userId,
       availableSlots,
     });
@@ -148,12 +154,30 @@ export const getAllFields = async (req, res) => {
       .populate('fieldOwner', 'firstName lastName email mobile')
       .sort({ createdAt: -1 });
 
-    // Ensure all fields have slots generated
+    // Import Booking model for rating calculation
+    const Booking = (await import('../models/booking.model.js')).default;
+
+    // Ensure all fields have slots generated and calculate average ratings
     for (let field of fields) {
       if (!field.availableSlots || field.availableSlots.length === 0) {
         const availableSlots = generateAvailableSlots();
         field.availableSlots = availableSlots;
         await field.save();
+      }
+
+      // Calculate average rating from reviews
+      const bookingsWithReviews = await Booking.find({
+        field: field._id,
+        'review.rating': { $exists: true, $ne: null }
+      });
+
+      if (bookingsWithReviews.length > 0) {
+        const totalRating = bookingsWithReviews.reduce((sum, booking) => sum + (booking.review.rating || 0), 0);
+        field._doc.averageRating = (totalRating / bookingsWithReviews.length).toFixed(1);
+        field._doc.totalReviews = bookingsWithReviews.length;
+      } else {
+        field._doc.averageRating = 0;
+        field._doc.totalReviews = 0;
       }
     }
 
@@ -237,7 +261,7 @@ export const updateField = async (req, res) => {
     }
 
     // Update allowed fields
-    const allowedUpdates = ['fieldName', 'fieldLocation', 'fieldType', 'fieldCapacity', 'pricePerHour', 'description', 'amenities', 'isActive'];
+    const allowedUpdates = ['fieldName', 'fieldLocation', 'fieldType', 'fieldCapacity', 'pricePerHour', 'description', 'amenities', 'coverImage', 'isActive', 'lockerAvailable', 'lockerPrice'];
     allowedUpdates.forEach(update => {
       if (req.body[update] !== undefined) {
         field[update] = req.body[update];
@@ -419,3 +443,22 @@ export const bookSlot = async (req, res) => {
     return res.status(500).json({ message: error.message || 'Server error' });
   }
 };
+
+// Get field count (Admin dashboard stats)
+export const getFieldCount = async (req, res) => {
+  try {
+    const count = await Field.countDocuments();
+    res.status(200).json({
+      success: true,
+      count,
+    });
+  } catch (error) {
+    console.error('Get field count error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
+

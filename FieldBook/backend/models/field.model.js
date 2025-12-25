@@ -37,6 +37,10 @@ const fieldSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    coverImage: {
+      type: String,
+      default: null,
+    },
     images: {
       type: [String],
       default: [],
@@ -60,6 +64,31 @@ const fieldSchema = new mongoose.Schema(
         ],
       },
     ],
+    equipment: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        pricePerItem: {
+          type: Number,
+          default: 100,
+        },
+        available: {
+          type: Boolean,
+          default: true,
+        },
+      },
+    ],
+    lockerAvailable: {
+      type: Boolean,
+      default: false,
+    },
+    lockerPrice: {
+      type: Number,
+      default: 200,
+    },
     isActive: {
       type: Boolean,
       default: true,

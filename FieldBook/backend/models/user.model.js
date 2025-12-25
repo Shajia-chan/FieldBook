@@ -110,6 +110,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    loyaltyPoints: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

@@ -3,10 +3,9 @@ import express from 'express';
 import cors from 'cors';
 dotenv.config();
 import userRouter from './routes/user.route.js';
-import postRouter from './routes/post.route.js';
-import coommentRouter from './routes/comment.js';
 import bookingRouter from './routes/booking.route.js';
 import fieldRouter from './routes/field.route.js';
+import tournamentRouter from './routes/tournament.route.js';
 import connectDB from './lib/connectDB.js';
 
 
@@ -68,11 +67,10 @@ app.get('/debug/booking-schema', (req, res) => {
 //     res.status(200).send("It works!");
 // });
 
-app.use('/users', userRouter);
-app.use('/posts', postRouter);
-app.use('/comments', coommentRouter);
-app.use('/bookings', bookingRouter);
-app.use('/fields', fieldRouter);
+app.use('/api/users', userRouter);
+app.use('/api/bookings', bookingRouter);
+app.use('/api/fields', fieldRouter);
+app.use('/api/tournaments', tournamentRouter);
 
 
 app.listen(PORT, () => {

@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./routes/Layout.jsx";
 import Homepage from "./routes/Homepage.jsx";
-import Booking from "./routes/Booking.jsx";
+import About from "./routes/About.jsx";
 import Bookings from "./routes/Bookings.jsx";
 import Login from "./routes/Login.jsx";
 import Register from "./routes/Register.jsx";
@@ -14,6 +14,8 @@ import AdminBookingPanel from "./routes/AdminBookingPanel.jsx";
 import AvailableFields from "./routes/AvailableFields.jsx";
 import ManageFields from "./routes/ManageFields.jsx";
 import BookField from "./routes/BookField.jsx";
+import Tournaments from "./routes/Tournaments.jsx";
+import AdminTournaments from "./routes/AdminTournaments.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 const App = () => {
@@ -25,7 +27,7 @@ const App = () => {
         <Routes>
           {/* Each route should have its own unique component */}
           <Route path="/" element={<Homepage />} />
-          <Route path="/booking" element={<Booking />} />
+          <Route path="/about" element={<About />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -35,6 +37,10 @@ const App = () => {
           <Route path="/available-fields" element={<AvailableFields />} />
           <Route path="/manage-fields" element={<ProtectedRoute requiredRole="Field_Owner"><ManageFields /></ProtectedRoute>} />
           <Route path="/book-field/:fieldId" element={<ProtectedRoute requiredRole="Player"><BookField /></ProtectedRoute>} />
+          
+          {/* Tournament Routes */}
+          <Route path="/tournaments" element={<Tournaments />} />
+          <Route path="/admin-tournaments" element={<ProtectedRoute requiredRole="Admin"><AdminTournaments /></ProtectedRoute>} />
           
           {/* Dashboard Routes */}
           <Route path="/player-dashboard" element={<ProtectedRoute requiredRole="Player"><PlayerDashboard /></ProtectedRoute>} />

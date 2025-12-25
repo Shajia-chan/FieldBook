@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
   const [step, setStep] = useState(1); // Step 1: Role selection, Step 2: Registration form
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -25,6 +27,13 @@ const Register = () => {
 
   const [error, setError] = useState('');
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
@@ -45,7 +54,7 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/users/register', {
+      const response = await fetch('http://localhost:3000/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,18 +68,11 @@ const Register = () => {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // Store token and user data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Update auth context (which also updates localStorage)
+      login(data.user, data.token);
 
-      // Redirect based on role
-      if (data.user.role === 'Admin') {
-        navigate('/admin-dashboard');
-      } else if (data.user.role === 'Field_Owner') {
-        navigate('/field-owner-dashboard');
-      } else {
-        navigate('/player-dashboard');
-      }
+      // Redirect to homepage
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {

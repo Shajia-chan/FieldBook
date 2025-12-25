@@ -20,7 +20,7 @@ const AdminBookingPanel = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await fetch('http://localhost:3000/bookings/all');
+      const response = await fetch('http://localhost:3000/api/bookings/all');
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -51,7 +51,7 @@ const AdminBookingPanel = () => {
   const handleConfirmBooking = async (bookingId) => {
     try {
       setSuccessMessage('');
-      const response = await fetch(`http://localhost:3000/bookings/${bookingId}/confirm`, {
+      const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/confirm`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ const AdminBookingPanel = () => {
   const handleRejectBooking = async (bookingId) => {
     try {
       setSuccessMessage('');
-      const response = await fetch(`http://localhost:3000/bookings/${bookingId}/reject`, {
+      const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/reject`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -156,10 +156,7 @@ const AdminBookingPanel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div style={{ position: 'fixed', top: '80px', right: '20px', background: 'white', padding: '10px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', zIndex: 40 }}>
-        <p style={{ margin: 0, fontSize: '12px' }}>Debug: Admin={user?.role === 'Admin'}, Role={user?.role}</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 pt-28 pb-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -244,6 +241,7 @@ const AdminBookingPanel = () => {
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Time</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Players</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Price</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Payment</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
                   </tr>
@@ -280,7 +278,33 @@ const AdminBookingPanel = () => {
                         {booking.numberOfPlayers || 0}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                        ৳{(booking.totalPrice || 0).toFixed(0)}
+                        <div>
+                          <p>৳{(booking.totalPrice || 0).toFixed(0)}</p>
+                          {booking.rentedEquipment && booking.rentedEquipment.length > 0 && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              +Equipment: ৳{booking.equipmentCost || 0}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {booking.paymentMethod === 'pay_later' ? 'Pay Later' : 
+                             booking.paymentMethod === 'bkash' ? 'bKash' : 
+                             booking.paymentMethod === 'nagad' ? 'Nagad' : 'N/A'}
+                          </p>
+                          {booking.transactionId && (
+                            <p className="text-xs text-gray-600 font-mono">
+                              TXN: {booking.transactionId}
+                            </p>
+                          )}
+                          {booking.rentedEquipment && booking.rentedEquipment.length > 0 && (
+                            <p className="text-xs text-gray-600 mt-1">
+                              Equipment: {booking.rentedEquipment.map(e => `${e.name} (${e.quantity})`).join(', ')}
+                            </p>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}>

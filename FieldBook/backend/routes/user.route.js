@@ -8,6 +8,7 @@ import {
   getUsersByRole,
   deleteUser,
   deactivateUser,
+  getUserCount,
 } from "../controllers/user.controller.js";
 
 const router = express.Router();
@@ -22,6 +23,7 @@ router.put("/profile/update", updateUserProfile);
 
 // Admin routes
 router.get("/all", getAllUsers);
+router.get("/count", getUserCount);
 router.get("/role/:role", getUsersByRole);
 router.delete("/delete", deleteUser);
 router.put("/deactivate", deactivateUser);

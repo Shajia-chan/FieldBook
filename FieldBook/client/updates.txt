@@ -6,3 +6,8 @@ npm install
 admin user:
 admin@fieldbook.com
 Test@1234
+
+
+test player:
+player2@gmail.com
+player2@gmail.com
