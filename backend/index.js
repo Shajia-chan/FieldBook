@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./lib/connectDB.js";
 import fieldRouter from "./routes/field.route.js";
+import staffRoutes from "./routes/staff.route.js";
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ const PORT = process.env.PORT || 3000;
 
 // Routes
 app.use("/fields", fieldRouter);
+app.use("/api/staff", staffRoutes);
 
 app.listen(PORT, async () => {
   await connectDB();
